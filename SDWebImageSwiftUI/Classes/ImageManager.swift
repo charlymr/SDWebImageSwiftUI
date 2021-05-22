@@ -17,6 +17,8 @@ public final class ImageManager : ObservableObject {
     @Published public var image: PlatformImage?
     /// loaded image data, may be nil if hit from memory cache. This will only published once even on incremental image loading
     @Published public var imageData: Data?
+    /// where the download image is located on the user's local filesystem
+    @Published public var imageUrlOnDisk: URL?
     /// loaded image cache type, .none means from network
     @Published public var cacheType: SDImageCacheType = .none
     /// loading error, you can grab the error code and reason listed in `SDWebImageErrorDomain`, to provide a user interface about the error reason
@@ -75,7 +77,7 @@ public final class ImageManager : ObservableObject {
                 self.progress = progress
             }
             self.progressBlock?(receivedSize, expectedSize)
-        }) { [weak self] (image, data, error, cacheType, finished, _) in
+        }) { [weak self] (image, data, error, cacheType, finished, urlOnDisk) in
             guard let self = self else {
                 return
             }
@@ -91,6 +93,7 @@ public final class ImageManager : ObservableObject {
             self.isIncremental = !finished
             if finished {
                 self.imageData = data
+                self.imageUrlOnDisk = urlOnDisk
                 self.cacheType = cacheType
                 self.isLoading = false
                 self.progress = 1
