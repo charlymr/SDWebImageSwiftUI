@@ -58,6 +58,9 @@ public struct WebImage : View {
         // This solve the case when WebImage created with new URL, but `onAppear` not been called, for example, some transaction indeterminate state, SwiftUI :)
         if imageManager.isFirstLoad {
             imageManager.load()
+        } else if !imageManager.isLoading && imageManager.image == nil {
+            // if we failed to load last time, we should load again
+            imageManager.load()
         }
         return Group {
             if let image = imageManager.image {
@@ -112,6 +115,7 @@ public struct WebImage : View {
         let result: Image
         // NSImage works well with SwiftUI, include Vector and EXIF images.
         #if os(macOS)
+        image.size = .init(width: 400, height: 400)
         result = Image(nsImage: image)
         #else
         // Fix the SwiftUI.Image rendering issue, like when use EXIF UIImage, the `.aspectRatio` does not works. SwiftUI's Bug :). See #101
