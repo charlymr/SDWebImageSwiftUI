@@ -20,7 +20,7 @@ public struct WebImage : View {
     var pausable: Bool = true
     var purgeable: Bool = false
     
-    @ObservedObject var imageManager: ImageManager
+    @ObservedObject public var imageManager: ImageManager
     
     /// A Binding to control the animation. You can bind external logic to control the animation status.
     /// True to start animation, false to stop animation.
@@ -50,17 +50,22 @@ public struct WebImage : View {
                 context[.animatedImageClass] = SDAnimatedImage.self
             }
         }
-        self.imageManager = ImageManager(url: url, options: options, context: context)
+        let imageManager = ImageManager(url: url, options: options, context: context)
+        self.imageManager = imageManager
         self.imagePlayer = ImagePlayer()
     }
     
     public var body: some View {
         // This solve the case when WebImage created with new URL, but `onAppear` not been called, for example, some transaction indeterminate state, SwiftUI :)
         if imageManager.isFirstLoad {
-            imageManager.load()
+            DispatchQueue.global(qos: .background).async {
+                imageManager.load()
+            }
         } else if !imageManager.isLoading && imageManager.image == nil {
             // if we failed to load last time, we should load again
-            imageManager.load()
+            DispatchQueue.global(qos: .background).async {
+                imageManager.load()
+            }
         }
         return Group {
             if let image = imageManager.image {
@@ -88,21 +93,25 @@ public struct WebImage : View {
             } else {
                 setupPlaceholder()
                 .onPlatformAppear(appear: {
-                    // Load remote image when first appear
-                    if self.imageManager.isFirstLoad {
-                        self.imageManager.load()
-                        return
-                    }
-                    guard self.retryOnAppear else { return }
-                    // When using prorgessive loading, the new partial image will cause onAppear. Filter this case
-                    if self.imageManager.image == nil && !self.imageManager.isIncremental {
-                        self.imageManager.load()
+                    DispatchQueue.global(qos: .background).async {
+                        // Load remote image when first appear
+                        if self.imageManager.isFirstLoad {
+                            self.imageManager.load()
+                            return
+                        }
+                        guard self.retryOnAppear else { return }
+                        // When using prorgessive loading, the new partial image will cause onAppear. Filter this case
+                        if self.imageManager.image == nil && !self.imageManager.isIncremental {
+                            self.imageManager.load()
+                        }
                     }
                 }, disappear: {
                     guard self.cancelOnDisappear else { return }
-                    // When using prorgessive loading, the previous partial image will cause onDisappear. Filter this case
-                    if self.imageManager.image == nil && !self.imageManager.isIncremental {
-                        self.imageManager.cancel()
+                    DispatchQueue.global(qos: .background).async {
+                        // When using prorgessive loading, the previous partial image will cause onDisappear. Filter this case
+                        if self.imageManager.image == nil && !self.imageManager.isIncremental {
+                            self.imageManager.cancel()
+                        }
                     }
                 })
             }

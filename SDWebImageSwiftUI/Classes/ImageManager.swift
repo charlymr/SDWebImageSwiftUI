@@ -9,6 +9,22 @@
 import SwiftUI
 import SDWebImage
 
+var countt2 = 0
+@available(iOS 13.0, OSX 10.15, tvOS 13.0, watchOS 6.0, *)
+public final class ImageManager2 : ObservableObject {
+    public init() {
+        countt2 += 1
+        print("2 INTTTT: there are \(countt2): i have \(CFGetRetainCount(self)) for CFGetRetainCount(self)")
+    }
+    
+    deinit {
+        countt2 -= 1
+        print("2 deinit: there are \(countt2)")
+    }
+}
+
+
+var countt = 0
 /// A Image observable object for handle image load process. This drive the Source of Truth for image loading status.
 /// You can use `@ObservedObject` to associate each instance of manager to your View type, which update your view's body from SwiftUI framework when image was loaded.
 @available(iOS 13.0, OSX 10.15, tvOS 13.0, watchOS 6.0, *)
@@ -54,6 +70,13 @@ public final class ImageManager : ObservableObject {
         } else {
             self.manager = .shared
         }
+        countt += 1
+        print("INTTTT: there are \(countt): i have \(CFGetRetainCount(self)) for CFGetRetainCount(self)")
+    }
+    
+    deinit {
+        countt -= 1
+        print("deinit: there are \(countt)")
     }
     
     /// Start to load the url operation
@@ -62,11 +85,15 @@ public final class ImageManager : ObservableObject {
         if currentOperation != nil {
             return
         }
-        self.isLoading = true
+        DispatchQueue.main.async {
+            self.isLoading = true
+        }
         
         if let remoteUrl = url {
             if let urlOnDisk = ((self.manager.imageCache as? SDImageCachesManager)?.caches?.first as? SDImageCache)?.diskCache.cachePath(forKey: remoteUrl.absoluteString) {
-                self.imageUrlOnDisk = urlOnDisk
+                DispatchQueue.main.async {
+                    self.imageUrlOnDisk = urlOnDisk
+                }
             }
         }
         
@@ -117,7 +144,9 @@ public final class ImageManager : ObservableObject {
         if let operation = currentOperation {
             operation.cancel()
             currentOperation = nil
-            isLoading = false
+            DispatchQueue.main.async {
+                self.isLoading = false
+            }
         }
     }
     
